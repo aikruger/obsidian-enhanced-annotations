@@ -1,6 +1,5 @@
 import { Editor } from 'obsidian';
 import { CommentFormat } from '../../settings/settings-type';
-import { AnnotationType } from '../../sidebar-outline/components/components/annotations-list/annotations-list.store';
 import { wrapText } from './wrap-text';
 import { cursorPosition } from './cursor-position';
 
@@ -14,7 +13,7 @@ export const wrapSelectedTextInAnAnnotation = ({
     doc: Editor;
     selection: string;
     format: CommentFormat;
-    type?: AnnotationType;
+    type?: string;
     label?: string;
 }) => {
     if (type)

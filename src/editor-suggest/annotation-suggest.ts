@@ -5,6 +5,7 @@ import {
     EditorSuggest,
     EditorSuggestContext,
     EditorSuggestTriggerInfo,
+    TFile,
 } from 'obsidian';
 import LabeledAnnotations from 'src/main';
 import { isValidLabel } from './helpers/is-valid-label';
@@ -39,6 +40,7 @@ export class AnnotationSuggest extends EditorSuggest<AnnotationCompletion> {
     }
 
     getSuggestions(context: EditorSuggestContext): AnnotationCompletion[] {
+        console.info("[CommentFormatting] Suggestion query", { query: context.query });
         const groups = this.plugin.settings.getValue().decoration.styles.labels;
         const labels = Array.from(
             new Set(
@@ -106,6 +108,8 @@ export class AnnotationSuggest extends EditorSuggest<AnnotationCompletion> {
                 : `%%${content}%%`;
         editor.replaceRange(text, this.context.start, this.context.end);
         const cursor = editor.getCursor();
+
+        console.info("[CommentFormatting] Comment type inserted", { label });
         editor.setCursor({
             line: cursor.line,
             ch:
@@ -118,6 +122,7 @@ export class AnnotationSuggest extends EditorSuggest<AnnotationCompletion> {
     onTrigger(
         cursor: EditorPosition,
         editor: Editor,
+        file: TFile
     ): EditorSuggestTriggerInfo | null {
         const settings = this.plugin.settings.getValue();
         if (!settings.editorSuggest.enableAutoSuggest) {
@@ -134,19 +139,32 @@ export class AnnotationSuggest extends EditorSuggest<AnnotationCompletion> {
             return null;
         }
 
-        const precedingChar = editor.getRange(
-            {
-                line: startPos.line,
-                ch: startPos.ch - 1,
-            },
-            startPos,
-        );
-
-        if (precedingChar && /[`a-zA-Z0-9]/.test(precedingChar)) {
-            return null;
+        // Prevent triggering inside words or emails
+        if (startPos.ch > 0) {
+            const precedingChar = editor.getRange(
+                {
+                    line: startPos.line,
+                    ch: startPos.ch - 1,
+                },
+                startPos,
+            );
+            // Ignore if preceded by alphanumeric chars, or common email characters if it's an @
+            if (precedingChar && (/[a-zA-Z0-9]/.test(precedingChar) || (triggerPhrase === '@' && /[@._-]/.test(precedingChar)))) {
+                return null;
+            }
         }
-        const line = editor.getLine(cursor.line);
-        if (isInsideAnnotation(line, '//', startPos.ch)) return null;
+
+        // Prevent triggering in code blocks or inline code (by checking editor context if possible, or naive parsing)
+        const lineStr = editor.getLine(cursor.line);
+        let inCode = false;
+        let tickCount = 0;
+        for (let i = 0; i < startPos.ch; i++) {
+            if (lineStr[i] === '`') tickCount++;
+        }
+        if (tickCount % 2 !== 0) return null; // Inside inline code
+
+        if (isInsideAnnotation(lineStr, triggerPhrase, startPos.ch)) return null;
+
         return {
             start: startPos,
             end: cursor,

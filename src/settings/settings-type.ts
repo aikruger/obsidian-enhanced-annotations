@@ -1,5 +1,3 @@
-import { AnnotationType } from '../sidebar-outline/components/components/annotations-list/annotations-list.store';
-import { ClipboardTemplates } from '../clipboard/helpers/annotations-to-text';
 
 export type Case = 'upper' | 'lower' | 'title';
 export type Opacity = 80 | 60 | 40 | 20;
@@ -37,20 +35,7 @@ export type LabelSettings = {
     style: LabelStyle;
     enableStyle: boolean;
 };
-export type NotesNamingMode =
-    | 'annotation-text'
-    | 'annotation-label - annotation-text'
-    | 'annotation-label/annotation-text';
 export type CommentFormat = 'markdown' | 'html';
-export type DefaultFolderMode =
-    | 'vault'
-    | 'current folder'
-    | 'current folder/notes'
-    | 'current folder/notes/<file-name>'
-    | 'customFolder';
-
-export type DateString = string;
-
 export type DefaultPalette = 'bright' | 'dull';
 
 export type Settings = {
@@ -66,32 +51,5 @@ export type Settings = {
             tag: TagSettings;
         };
         defaultPalette: DefaultPalette;
-    };
-    outline: {
-        showSearchInput: boolean;
-        fontSize: number;
-        showLabelsFilter: boolean;
-        hiddenLabels: string[];
-        hiddenTypes: AnnotationType[];
-    };
-    tts: {
-        volume: number;
-        rate: number;
-        voice?: string;
-        pitch: number;
-        focusAnnotationInEditor: boolean;
-    };
-    notes: {
-        defaultFolderMode: DefaultFolderMode;
-        defaultFolder: string;
-        notesNamingMode: NotesNamingMode;
-        openNoteAfterCreation: boolean;
-        insertLinkToNote: boolean;
-        template: string;
-        truncateFileName: boolean;
-    };
-    clipboard: { templates: ClipboardTemplates };
-    idling: {
-        daysUnused: [DateString?, DateString?, DateString?];
     };
 };

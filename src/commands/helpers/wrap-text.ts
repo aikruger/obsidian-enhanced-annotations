@@ -1,4 +1,3 @@
-import { AnnotationType } from '../../sidebar-outline/components/components/annotations-list/annotations-list.store';
 import { CommentFormat } from '../../settings/settings-type';
 
 export const wrapText = ({
@@ -9,7 +8,7 @@ export const wrapText = ({
 }: {
     label?: string;
     text: string;
-    type?: AnnotationType;
+    type?: string;
     format: CommentFormat;
 }) => {
     if (label) label = label + ': ';

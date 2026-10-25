@@ -1,9 +1,8 @@
-import LabeledAnnotations from '../../../../main';
-import { l } from '../../../../lang/lang';
 import { Setting } from 'obsidian';
 import { TagSettings } from './components/tag-settings';
 import { DefaultPalette } from '../../../settings-type';
-import { settingsHeader } from '../../../../status-bar/helpers/class-names';
+import { l } from '../../../../lang/lang';
+import LabeledAnnotations from '../../../../main';
 
 type Props = {
     containerEl: HTMLElement;
@@ -13,7 +12,7 @@ export const LabelsSettings = ({ plugin, containerEl }: Props) => {
     new Setting(containerEl)
         .setName(l.SETTINGS_LABELS_STYLES_TITLE)
         .setHeading()
-        .settingEl.addClass(settingsHeader);
+        .settingEl.addClass('enhanced-annotations__settings-header');
     const settings = plugin.settings.getValue();
     const render = () => {
         containerEl.empty();
