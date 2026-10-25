@@ -39,8 +39,8 @@ export class AnnotationSuggest extends EditorSuggest<AnnotationCompletion> {
         });
     }
 
+
     getSuggestions(context: EditorSuggestContext): AnnotationCompletion[] {
-        console.info("[CommentFormatting] Suggestion query", { query: context.query });
         const groups = this.plugin.settings.getValue().decoration.styles.labels;
         const labels = Array.from(
             new Set(
@@ -50,20 +50,26 @@ export class AnnotationSuggest extends EditorSuggest<AnnotationCompletion> {
             ),
         );
 
+        const query = context.query.toLowerCase();
+
         const suggestions = labels
             .map((val) => ({ label: val }))
             .filter((item) =>
-                item.label.toLowerCase().startsWith(context.query),
+                item.label.toLowerCase().startsWith(query),
             )
             .sort((a, b) => {
                 const nA = this.usedSuggestions[a.label];
                 const nB = this.usedSuggestions[b.label];
                 const countB = nB?.count || 0;
                 const countA = nA?.count || 0;
-                return countB === countA
-                    ? nB?.timestamp - nB?.timestamp
-                    : countB - countA;
+                if (countB === countA) {
+                    const timeB = nB?.timestamp || 0;
+                    const timeA = nA?.timestamp || 0;
+                    return timeB - timeA;
+                }
+                return countB - countA;
             });
+
         let result: AnnotationCompletion[] = [];
         if (suggestions.length) {
             result = suggestions;
@@ -154,14 +160,28 @@ export class AnnotationSuggest extends EditorSuggest<AnnotationCompletion> {
             }
         }
 
-        // Prevent triggering in code blocks or inline code (by checking editor context if possible, or naive parsing)
+        // Prevent triggering in code blocks or inline code
+        // We can check standard Obsidian Markdown syntax via editor token type
+        // Note: Obsidian API doesn't expose getTokenAt on standard Editor interface but we can check CM state if available
+        // Or we fallback to naive line check if not available.
+        // Actually, Obsidian standard editor doesn't have an easy getTokenAt.
         const lineStr = editor.getLine(cursor.line);
         let inCode = false;
         let tickCount = 0;
         for (let i = 0; i < startPos.ch; i++) {
             if (lineStr[i] === '`') tickCount++;
         }
-        if (tickCount % 2 !== 0) return null; // Inside inline code
+        if (tickCount % 2 !== 0) return null; // Naive inline code check
+
+        // Heuristic fenced code block check (Obsidian usually highlights these, but without cm object, we just look up)
+        let isFenced = false;
+        for (let i = cursor.line; i >= 0; i--) {
+            const l = editor.getLine(i);
+            if (l.startsWith('```')) {
+                isFenced = !isFenced;
+            }
+        }
+        if (isFenced) return null; // Inside fenced code block
 
         if (isInsideAnnotation(lineStr, triggerPhrase, startPos.ch)) return null;
 

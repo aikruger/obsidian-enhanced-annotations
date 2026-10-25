@@ -90,8 +90,27 @@ export default class LabeledAnnotations extends Plugin {
         );
     }
 
+    private saveSettingsTimeout: number | null = null;
+    private saveSettingsPromise: Promise<void> | null = null;
+
     async saveSettings() {
-        await this.saveData(this.settings.getValue());
+        if (this.saveSettingsTimeout) {
+            window.clearTimeout(this.saveSettingsTimeout);
+        }
+
+        this.saveSettingsTimeout = window.setTimeout(async () => {
+            try {
+                if (this.saveSettingsPromise) await this.saveSettingsPromise;
+
+                const p = this.saveData(this.settings.getValue());
+                this.saveSettingsPromise = p;
+                await p;
+            } catch (error) {
+                console.error("[CommentFormatting] Settings save failed", { error });
+            } finally {
+                this.saveSettingsPromise = null;
+            }
+        }, 100);
     }
 
     registerSubscription(...callback: (() => void)[]) {

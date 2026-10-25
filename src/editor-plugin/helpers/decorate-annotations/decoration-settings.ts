@@ -90,15 +90,15 @@ export class DecorationSettings {
     }
 
     private decorate() {
-        const editor = this.plugin.app.workspace.activeEditor?.editor;
-        if (editor) {
-            // @ts-ignore
-            if (editor.cm && editor.cm.dispatch) {
-                // @ts-ignore
-                editor.cm.dispatch({
-annotations: refreshAnnotation.of(true)
-                });
-}
-}
-}
+        this.plugin.app.workspace.iterateAllLeaves((leaf) => {
+            if (leaf.view.getViewType() === 'markdown') {
+                const editor = (leaf.view as any).editor;
+                if (editor && editor.cm && editor.cm.dispatch) {
+                    editor.cm.dispatch({
+                        annotations: refreshAnnotation.of(true)
+                    });
+                }
+            }
+        });
+    }
 }

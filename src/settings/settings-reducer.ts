@@ -36,6 +36,7 @@ export type SettingsActions =
           type: 'NEW_GROUP';
           payload: {
               pattern: string;
+              id: string; // ID passed in payload to keep reducer pure
           };
       }
     | { type: 'ENABLE_AUTO_SUGGEST'; payload: { enable: boolean } }
@@ -115,16 +116,24 @@ export type SettingsActions =
 const updateState = (store: Settings, action: SettingsActions) => {
     const labels = store.decoration.styles.labels;
     const tag = store.decoration.styles.tag;
+
+    // Helper to safely access label
+    const safeLabel = (id: string) => {
+        return labels[id];
+    };
+
     if (action.type === 'SET_PATTERN') {
-        if (!action.payload.pattern || isValidLabel(action.payload.pattern))
-            labels[action.payload.id].label = action.payload.pattern;
+        const label = safeLabel(action.payload.id);
+        if (label && (!action.payload.pattern || isValidLabel(action.payload.pattern)))
+            label.label = action.payload.pattern;
     } else if (action.type === 'SET_COLOR') {
-        labels[action.payload.id].style.color = action.payload.color;
+        const label = safeLabel(action.payload.id);
+        if (label) label.style.color = action.payload.color;
     } else if (action.type === 'DELETE_GROUP') {
         delete labels[action.payload.id];
     } else if (action.type === 'NEW_GROUP') {
         if (!action.payload.pattern || isValidLabel(action.payload.pattern)) {
-            const id = String(Date.now());
+            const id = action.payload.id;
             labels[id] = {
                 label: action.payload.pattern,
                 id,
@@ -144,23 +153,32 @@ const updateState = (store: Settings, action: SettingsActions) => {
     } else if (action.type === 'ENABLE_AUTO_REGISTER_LABELS') {
         store.decoration.autoRegisterLabels = action.payload.enable;
     } else if (action.type === 'ENABLE_LABEL_STYLES') {
-        labels[action.payload.id].enableStyle = action.payload.enable;
+        const label = safeLabel(action.payload.id);
+        if (label) label.enableStyle = action.payload.enable;
     } else if (action.type === 'SET_LABEL_UNDERLINE') {
-        labels[action.payload.id].style.underline = action.payload.underline;
+        const label = safeLabel(action.payload.id);
+        if (label) label.style.underline = action.payload.underline;
     } else if (action.type === 'SET_LABEL_FONT_WEIGHT') {
-        labels[action.payload.id].style.fontWeight = action.payload.weight;
+        const label = safeLabel(action.payload.id);
+        if (label) label.style.fontWeight = action.payload.weight;
     } else if (action.type === 'SET_LABEL_SCOPE') {
-        labels[action.payload.id].style.scope = action.payload.scope;
+        const label = safeLabel(action.payload.id);
+        if (label) label.style.scope = action.payload.scope;
     } else if (action.type === 'SET_LABEL_FONT_OPACITY') {
-        labels[action.payload.id].style.opacity = action.payload.opacity;
+        const label = safeLabel(action.payload.id);
+        if (label) label.style.opacity = action.payload.opacity;
     } else if (action.type === 'SET_LABEL_FONT_FAMILY') {
-        labels[action.payload.id].style.fontFamily = action.payload.family;
+        const label = safeLabel(action.payload.id);
+        if (label) label.style.fontFamily = action.payload.family;
     } else if (action.type === 'SET_LABEL_FONT_SIZE') {
-        labels[action.payload.id].style.fontSize = action.payload.fontSize;
+        const label = safeLabel(action.payload.id);
+        if (label) label.style.fontSize = action.payload.fontSize;
     } else if (action.type === 'SET_LABEL_ITALIC') {
-        labels[action.payload.id].style.italic = action.payload.italic;
+        const label = safeLabel(action.payload.id);
+        if (label) label.style.italic = action.payload.italic;
     } else if (action.type === 'SET_LABEL_CASE') {
-        labels[action.payload.id].style.case = action.payload.case;
+        const label = safeLabel(action.payload.id);
+        if (label) label.style.case = action.payload.case;
     } else if (action.type === 'SET_AUTO_SUGGEST_COMMENT_TYPE') {
         store.editorSuggest.commentFormat = action.payload.type;
     } else if (action.type === 'ENABLE_TAG_STYLES') {
@@ -178,10 +196,21 @@ const updateState = (store: Settings, action: SettingsActions) => {
     }
 };
 
+
+
 export const settingsReducer = (
     store: Settings,
     action: SettingsActions,
 ): Settings => {
     updateState(store, action);
+    if (action.type === 'NEW_GROUP') {
+        console.info("[CommentFormatting] Comment type created", { label: action.payload.pattern });
+    } else if (action.type === 'DELETE_GROUP') {
+        console.info("[CommentFormatting] Comment type deleted", { id: action.payload.id });
+    } else if (action.type === 'SET_PATTERN') {
+        console.info("[CommentFormatting] Comment type renamed", { id: action.payload.id, label: action.payload.pattern });
+    } else if (action.type.startsWith('SET_LABEL_') || action.type === 'SET_COLOR' || action.type === 'ENABLE_LABEL_STYLES') {
+        console.debug("[CommentFormatting] Comment type style updated", { id: (action.payload as any).id, changedKeys: [action.type] });
+    }
     return store;
 };
