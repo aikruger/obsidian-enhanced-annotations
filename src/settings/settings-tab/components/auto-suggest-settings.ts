@@ -1,8 +1,7 @@
 import { Setting } from 'obsidian';
 import LabeledAnnotations from '../../../main';
-import { l } from '../../../lang/lang';
 import { CommentFormat } from '../../settings-type';
-import { settingsHeader } from '../../../status-bar/helpers/class-names';
+import { l } from '../../../lang/lang';
 
 type Props = {
     containerEl: HTMLElement;
@@ -12,7 +11,7 @@ export const AutoSuggestSettings = ({ plugin, containerEl }: Props) => {
     new Setting(containerEl)
         .setName(l.SETTINGS_AUTO_SUGGEST_TITLE)
         .setHeading()
-        .settingEl.addClass(settingsHeader);
+        .settingEl.addClass('enhanced-annotations__settings-header');
     const settings = plugin.settings.getValue();
     new Setting(containerEl)
         .setName(l.SETTINGS_AUTO_SUGGEST_ENABLE)

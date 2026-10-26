@@ -7,9 +7,10 @@ import {
     ViewUpdate,
 } from '@codemirror/view';
 import { decorateAnnotations } from './helpers/decorate-annotations/decorate-annotations';
-import { outlineAnnotation } from '../sidebar-outline/helpers/outline-updater/helpers/trigger-editor-update';
 import LabeledAnnotations from '../main';
 import { Annotation, Transaction } from '@codemirror/state';
+
+export const refreshAnnotation = Annotation.define<boolean>();
 
 type AnnotatedTransaction = Transaction & {
     annotations?: Annotation<string>[];
@@ -27,8 +28,7 @@ export class EditorPlugin implements PluginValue {
         if (
             update.docChanged ||
             update.viewportChanged ||
-            (update.transactions as AnnotatedTransaction[])?.[0]
-                ?.annotations?.[0] === outlineAnnotation
+            update.transactions.some(tr => tr.annotation(refreshAnnotation))
         ) {
             this.decorations = decorateAnnotations(
                 update.view,

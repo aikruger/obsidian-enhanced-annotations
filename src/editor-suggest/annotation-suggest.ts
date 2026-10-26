@@ -5,6 +5,7 @@ import {
     EditorSuggest,
     EditorSuggestContext,
     EditorSuggestTriggerInfo,
+    TFile,
 } from 'obsidian';
 import LabeledAnnotations from 'src/main';
 import { isValidLabel } from './helpers/is-valid-label';
@@ -38,6 +39,7 @@ export class AnnotationSuggest extends EditorSuggest<AnnotationCompletion> {
         });
     }
 
+
     getSuggestions(context: EditorSuggestContext): AnnotationCompletion[] {
         const groups = this.plugin.settings.getValue().decoration.styles.labels;
         const labels = Array.from(
@@ -48,20 +50,26 @@ export class AnnotationSuggest extends EditorSuggest<AnnotationCompletion> {
             ),
         );
 
+        const query = context.query.toLowerCase();
+
         const suggestions = labels
             .map((val) => ({ label: val }))
             .filter((item) =>
-                item.label.toLowerCase().startsWith(context.query),
+                item.label.toLowerCase().startsWith(query),
             )
             .sort((a, b) => {
                 const nA = this.usedSuggestions[a.label];
                 const nB = this.usedSuggestions[b.label];
                 const countB = nB?.count || 0;
                 const countA = nA?.count || 0;
-                return countB === countA
-                    ? nB?.timestamp - nB?.timestamp
-                    : countB - countA;
+                if (countB === countA) {
+                    const timeB = nB?.timestamp || 0;
+                    const timeA = nA?.timestamp || 0;
+                    return timeB - timeA;
+                }
+                return countB - countA;
             });
+
         let result: AnnotationCompletion[] = [];
         if (suggestions.length) {
             result = suggestions;
@@ -106,6 +114,8 @@ export class AnnotationSuggest extends EditorSuggest<AnnotationCompletion> {
                 : `%%${content}%%`;
         editor.replaceRange(text, this.context.start, this.context.end);
         const cursor = editor.getCursor();
+
+        console.info("[CommentFormatting] Comment type inserted", { label });
         editor.setCursor({
             line: cursor.line,
             ch:
@@ -118,6 +128,7 @@ export class AnnotationSuggest extends EditorSuggest<AnnotationCompletion> {
     onTrigger(
         cursor: EditorPosition,
         editor: Editor,
+        file: TFile
     ): EditorSuggestTriggerInfo | null {
         const settings = this.plugin.settings.getValue();
         if (!settings.editorSuggest.enableAutoSuggest) {
@@ -134,19 +145,46 @@ export class AnnotationSuggest extends EditorSuggest<AnnotationCompletion> {
             return null;
         }
 
-        const precedingChar = editor.getRange(
-            {
-                line: startPos.line,
-                ch: startPos.ch - 1,
-            },
-            startPos,
-        );
-
-        if (precedingChar && /[`a-zA-Z0-9]/.test(precedingChar)) {
-            return null;
+        // Prevent triggering inside words or emails
+        if (startPos.ch > 0) {
+            const precedingChar = editor.getRange(
+                {
+                    line: startPos.line,
+                    ch: startPos.ch - 1,
+                },
+                startPos,
+            );
+            // Ignore if preceded by alphanumeric chars, or common email characters if it's an @
+            if (precedingChar && (/[a-zA-Z0-9]/.test(precedingChar) || (triggerPhrase === '@' && /[@._-]/.test(precedingChar)))) {
+                return null;
+            }
         }
-        const line = editor.getLine(cursor.line);
-        if (isInsideAnnotation(line, '//', startPos.ch)) return null;
+
+        // Prevent triggering in code blocks or inline code
+        // We can check standard Obsidian Markdown syntax via editor token type
+        // Note: Obsidian API doesn't expose getTokenAt on standard Editor interface but we can check CM state if available
+        // Or we fallback to naive line check if not available.
+        // Actually, Obsidian standard editor doesn't have an easy getTokenAt.
+        const lineStr = editor.getLine(cursor.line);
+        let inCode = false;
+        let tickCount = 0;
+        for (let i = 0; i < startPos.ch; i++) {
+            if (lineStr[i] === '`') tickCount++;
+        }
+        if (tickCount % 2 !== 0) return null; // Naive inline code check
+
+        // Heuristic fenced code block check (Obsidian usually highlights these, but without cm object, we just look up)
+        let isFenced = false;
+        for (let i = cursor.line; i >= 0; i--) {
+            const l = editor.getLine(i);
+            if (l.startsWith('```')) {
+                isFenced = !isFenced;
+            }
+        }
+        if (isFenced) return null; // Inside fenced code block
+
+        if (isInsideAnnotation(lineStr, triggerPhrase, startPos.ch)) return null;
+
         return {
             start: startPos,
             end: cursor,

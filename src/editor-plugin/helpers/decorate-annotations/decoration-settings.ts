@@ -1,8 +1,8 @@
+import { refreshAnnotation } from '../../editor-plugin';
 import { Decoration } from '@codemirror/view';
 import { Settings } from '../../../settings/settings-type';
 import { generateLabelStyleString } from './helpers/generate-label-style-string';
 import LabeledAnnotations from '../../../main';
-import { triggerEditorUpdate } from '../../../sidebar-outline/helpers/outline-updater/helpers/trigger-editor-update';
 
 type StyleDecorations = {
     comment: Decoration | null;
@@ -90,9 +90,15 @@ export class DecorationSettings {
     }
 
     private decorate() {
-        const editor = this.plugin.outline.getValue().view?.editor;
-        if (editor) {
-            triggerEditorUpdate(editor);
-        }
+        this.plugin.app.workspace.iterateAllLeaves((leaf) => {
+            if (leaf.view.getViewType() === 'markdown') {
+                const editor = (leaf.view as any).editor;
+                if (editor && editor.cm && editor.cm.dispatch) {
+                    editor.cm.dispatch({
+                        annotations: refreshAnnotation.of(true)
+                    });
+                }
+            }
+        });
     }
 }

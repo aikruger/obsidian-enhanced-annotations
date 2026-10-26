@@ -1,4 +1,3 @@
-import { AnnotationType } from '../../sidebar-outline/components/components/annotations-list/annotations-list.store';
 import { wrapText } from './wrap-text';
 import { cursorPosition } from './cursor-position';
 import { parseAnnotations } from '../../editor-plugin/helpers/decorate-annotations/helpers/parse-annotations/parse-annotations';
@@ -14,7 +13,7 @@ export const insertAnnotation = ({
     editor,
 }: {
     label?: string;
-    type?: AnnotationType;
+    type?: string;
     emptyLines?: number;
     plugin: LabeledAnnotations;
     editor: Editor;
